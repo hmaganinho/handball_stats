@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handball Stats Elite</title>
+    <style>
+        :root {
+            --verde: #28a745; --vermelho: #dc3545; --azul: #007bff;
+            --laranja: #fd7e14; --amarelo: #ffc107; --cinza: #333;
+        }
+
+        body { font-family: sans-serif; margin: 0; background: #1a1a1a; color: white; padding-bottom: 50px; }
+        
+        /* TOPO FIXO */
+        #topo { position: sticky; top: 0; z-index: 100; background: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
+        #marcador { display: flex; justify-content: space-around; align-items: center; padding: 10px; }
+        
+        /* 3 INDICADORES NO TOPO */
+        #equipa-stats { display: flex; gap: 4px; padding: 10px; background: #222; border-top: 1px solid #444; }
+        .btn-destaque { flex: 1; padding: 10px 2px; border-radius: 5px; background: var(--azul); text-align: center; }
+        .val-destaque { display: block; font-size: 16px; font-weight: bold; }
+        .label-destaque { display: block; font-size: 9px; opacity: 0.9; text-transform: uppercase; margin-bottom: 2px; }
+
+        section { padding: 15px; border-bottom: 1px solid #333; }
+        h3 { font-size: 11px; color: #777; text-transform: uppercase; margin: 0 0 10px 0; letter-spacing: 1px; }
+
+        /* GRELHAS */
+        .grid-jogadores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+        .grid-staff { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 4px; }
+        .grid-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .full-width { grid-column: span 2; }
+
+        button { border: none; border-radius: 4px; color: white; font-weight: bold; cursor: pointer; padding: 14px 2px; font-size: 10px; }
+        .btn-jogador { background: var(--cinza); border: 1px solid #444; height: 48px; }
+        .btn-jogador.selecionado { background: var(--azul); border-color: #fff; box-shadow: 0 0 10px var(--azul); }
+
+        /* TABELA STATS */
+        .stats-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; background: #222; border-radius: 8px; overflow: hidden; }
+        .stats-table th { background: #333; padding: 12px 5px; font-size: 10px; color: #aaa; text-align: center; }
+        .stats-table td { padding: 12px 5px; text-align: center; border-bottom: 1px solid #333; }
+        
+        .score { font-size: 32px; font-weight: bold; font-family: 'Courier New', Courier, monospace; }
+        #tempo { font-size: 20px; color: var(--amarelo); font-family: monospace; }
+    </style>
+
+</head>
+<body>
+
+<div id="topo">
+    <div id="marcador">
+        <div class="score" id="placar-nos">0</div>
+        <div style="text-align:center">
+            <div id="tempo">00:00</div>
+            <button onclick="toggleTempo()" id="btn-timer" style="background:var(--cinza); padding:4px 10px; font-size:10px; border: 1px solid #666;">START/STOP</button>
+        </div>
+        <div class="score" id="placar-eles">0</div>
+    </div>
+    
+    <div id="equipa-stats">
+        <div class="btn-destaque">
+            <span class="label-destaque">EO (Ataque)</span>
+            <span class="val-destaque" id="team-eo">0%</span>
+        </div>
+        <div class="btn-destaque" style="background-color: #5c6bc0;">
+            <span class="label-destaque">ED (Defesa)</span>
+            <span class="val-destaque" id="team-ed">0%</span>
+        </div>
+        <div class="btn-destaque">
+            <span class="label-destaque">RP (Rácio)</span>
+            <span class="val-destaque" id="team-rp">0.0</span>
+        </div>
+    </div>
+</div>
+
+<div id="zona-exclusoes" style="display: flex; flex-wrap: wrap; gap: 5px; padding: 5px; background: #111;">
+</div>
+
+<section>
+    <h3>Jogadores & Staff</h3>
+    <div class="grid-jogadores" id="area-jogadores"></div>
+    <div class="grid-staff" id="area-staff"></div>
+</section>
+<section style="text-align: left;">
+    <button onclick="editarPlantel()" style="background: #666; font-size: 9px; padding: 5px 10px;">
+        ⚙️ EDITAR NÚMEROS CAMISOLA
+    </button>
+</section>
+<section>
+    <h3>Ações de Jogo</h3>
+    <div class="grid-acoes">
+        <button style="background:var(--verde)" onclick="registar('GOLO MARCADO')">GOLO MARCADO</button>
+        <button style="background:var(--vermelho)" onclick="registar('REMATE FALHADO')">REMATE FALHADO</button>
+        
+        <button style="background:var(--verde)" onclick="registar('REMATE DEFENDIDO')">REMATE DEFENDIDO</button>
+        <button style="background:var(--vermelho)" onclick="registar('GOLO SOFRIDO')">GOLO SOFRIDO</button>
+        
+        <button style="background:var(--verde)" onclick="registar('AÇÃO DEFENSIVA')">AÇÃO DEFENSIVA</button>
+        <button style="background:var(--vermelho)" onclick="registar('FALHA TÉCNICA')">FALHA TÉCNICA</button>
+        
+        <button style="background:var(--amarelo); color:black" onclick="registar('CARTÃO AMARELO')">C. AMARELO</button>
+        <button style="background:var(--laranja)" onclick="registar('2 MINUTOS')">2 MINUTOS</button>
+        
+        <button style="background:var(--vermelho)" class="full-width" onclick="registar('CARTÃO VERMELHO')">CARTÃO VERMELHO</button>
+    </div>
+</section>
+
+<section id="seccao-estatisticas">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3>Dashboard Individual</h3>
+        <button id="btn-toggle-stats" onclick="toggleStats()" style="background: var(--azul); padding: 5px 10px; font-size: 10px;">
+            🔼 ESCONDER ESTATÍSTICAS
+        </button>
+    </div>
+
+    <div id="conteudo-stats" style="display: block; overflow-x: auto;">
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>JOGADOR</th>
+                    <th>GM</th>
+                    <th>EO%</th>
+                    <th>RP</th>
+                    <th style="color:var(--amarelo)">AM</th>
+                    <th style="color:var(--laranja)">2M</th>
+                    <th style="color:var(--vermelho)">VM</th>
+                </tr>
+            </thead>
+            <tbody id="corpo-stats">
+                </tbody>
+        </table>
+    </div>
+</section>
+<section style="text-align: center;">
+    <button onclick="anularUltimo()" style="background:#444; width:100%; padding:15px; border: 1px dashed #777;">↩ ANULAR ÚLTIMO REGISTO</button>
+</section>
+
+<section style="display: flex; gap: 10px; padding: 15px; background: #222; border-top: 2px solid #444;">
+    <button onclick="configurarNovoJogo()" style="background:#2196F3; flex: 1; padding: 15px;">🆕 NOVO JOGO / CONFIGURAR</button>
+    <button onclick="exportarCSV()" style="background:#FF5722; flex: 1; padding: 15px;">💾 DESCARREGAR CSV (EXCEL)</button>
+<button onclick="gerarResumoWhatsApp()" style="background:#25D366; flex: 1; padding: 15px; color: white; font-weight: bold;">
+    📱 RESUMO WHATSAPP
+</button>
+</section>
+
+<script>
+// ==========================================
+// 1. DADOS INICIAIS (O MOTOR)
+// ==========================================
+let plantel = JSON.parse(localStorage.getItem('plantel_andebol')) || ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12", "13", "14", "15", "16"];
+const staff = ["TREINADOR", "DIRIGENTE"];
+let metadadosJogo = JSON.parse(localStorage.getItem('metadados_jogo')) || { id: "001", adversario: "N/A", data: new Date().toLocaleDateString() };
+
+let historico = [], jogadorAtivo = null, segs = 0, timerInterval = null;
+let pNos = 0, pEles = 0, exclusoesAtivas = [];
+
+// ==========================================
+// 2. INICIALIZAÇÃO (DESENHAR O ECRÃ)
+// ==========================================
+function init() {
+    const areaJ = document.getElementById('area-jogadores');
+    const areaS = document.getElementById('area-staff');
+    
+    if(!areaJ || !areaS) return; // Segurança
+
+    areaJ.innerHTML = ''; 
+    areaS.innerHTML = '';
+
+    // Criar botões dos jogadores com base no plantel atual
+    plantel.forEach(nr => {
+        const nomeBotao = "Nº " + nr;
+        areaJ.appendChild(criarBotaoJogador(nomeBotao));
+    });
+
+    // Criar botões do staff
+    staff.forEach(s => areaS.appendChild(criarBotaoJogador(s)));
+    
+    carregarDadosGuardados(); 
+    atualizarUI();
+}
+
+function criarBotaoJogador(nome) {
+    const b = document.createElement('button');
+    b.className = 'btn-jogador';
+    b.innerText = nome;
+    b.onclick = () => {
+        document.querySelectorAll('.btn-jogador').forEach(x => x.classList.remove('selecionado'));
+        b.classList.add('selecionado');
+        jogadorAtivo = nome;
+    };
+    return b;
+}
+
+// ==========================================
+// 3. ACÇÕES E REGISTOS
+// ==========================================
+function registar(acao) {
+    if(!jogadorAtivo) return alert("Selecione primeiro o jogador!");
+
+    if(acao === "2 MINUTOS") {
+        exclusoesAtivas.push({ jogador: jogadorAtivo, segundos: 120 });
+    }
+    if(acao === "GOLO MARCADO") pNos++;
+    if(acao === "GOLO SOFRIDO") pEles++;
+    
+    historico.unshift({ quem: jogadorAtivo, oQue: acao, tempo: document.getElementById('tempo').innerText });
+    
+    // Reset seleção
+    jogadorAtivo = null;
+    document.querySelectorAll('.selecionado').forEach(x => x.classList.remove('selecionado'));
+    
+    salvarLocalmente();
+    atualizarUI();
+}
+
+// ==========================================
+// 4. TEMPO E EXCLUSÕES
+// ==========================================
+function toggleTempo() {
+    const btn = document.getElementById('btn-timer');
+    if(timerInterval) { 
+        clearInterval(timerInterval); 
+        timerInterval = null; 
+        btn.innerText = "START/STOP";
+    } else { 
+        timerInterval = setInterval(() => { 
+            segs++; 
+            atualizarRelogio(); 
+            processarExclusoes(); 
+        }, 1000); 
+        btn.innerText = "PAUSA";
+    }
+}
+
+function atualizarRelogio() {
+    const m = Math.floor(segs/60).toString().padStart(2,'0');
+    const s = (segs%60).toString().padStart(2,'0');
+    document.getElementById('tempo').innerText = `${m}:${s}`;
+}
+
+function processarExclusoes() {
+    if (exclusoesAtivas.length === 0) {
+        document.getElementById('zona-exclusoes').innerHTML = '';
+        return;
+    }
+    exclusoesAtivas.forEach((ex, index) => {
+        ex.segundos--;
+        if (ex.segundos <= 0) {
+            alert("REENTRADA: " + ex.jogador);
+            exclusoesAtivas.splice(index, 1);
+        }
+    });
+    renderizarExclusoes();
+}
+
+function renderizarExclusoes() {
+    const zona = document.getElementById('zona-exclusoes');
+    zona.innerHTML = exclusoesAtivas.map(ex => {
+        const m = Math.floor(ex.segundos / 60);
+        const s = (ex.segundos % 60).toString().padStart(2, '0');
+        return `<div style="background:var(--laranja); padding:5px 10px; border-radius:4px; font-size:11px; font-weight:bold;">OUT: ${ex.jogador} (${m}:${s})</div>`;
+    }).join('');
+}
+
+// ==========================================
+// 5. ESTATÍSTICAS E DASHBOARD
+// ==========================================
+function atualizarUI() {
+    document.getElementById('placar-nos').innerText = pNos;
+    document.getElementById('placar-eles').innerText = pEles;
+
+    const resumo = {};
+    const todos = [...staff, ...plantel.map(n => "Nº " + n)];
+    todos.forEach(n => resumo[n] = { gm:0, falhas:0, def:0, rem_f:0, rem_d:0, am:0, m2:0, vm:0 });
+
+    let tDefendidos = 0;
+    historico.forEach(e => {
+        const r = resumo[e.quem];
+        if(!r) return;
+        if(e.oQue === "GOLO MARCADO") r.gm++;
+        if(e.oQue === "FALHA TÉCNICA") r.falhas++;
+        if(e.oQue === "AÇÃO DEFENSIVA") r.def++;
+        if(e.oQue === "REMATE FALHADO") r.rem_f++;
+        if(e.oQue === "REMATE DEFENDIDO") { r.rem_d++; tDefendidos++; }
+        if(e.oQue === "CARTÃO AMARELO") r.am++;
+        if(e.oQue === "2 MINUTOS") r.m2++;
+        if(e.oQue === "CARTÃO VERMELHO") r.vm++;
+    });
+
+    let html = "", tGM = 0, tRemEf = 0, tDef = 0, tFalhas = 0;
+    for(let j in resumo) {
+        const r = resumo[j];
+        const remEficacia = r.gm + r.rem_f;
+        const eo = remEficacia > 0 ? ((r.gm / remEficacia) * 100).toFixed(0) : 0;
+        const rp = r.falhas > 0 ? (r.def / r.falhas).toFixed(1) : r.def.toFixed(1);
+        tGM += r.gm; tRemEf += remEficacia; tDef += r.def; tFalhas += r.falhas;
+
+        if(remEficacia > 0 || r.def > 0 || r.falhas > 0 || r.am > 0 || r.m2 > 0 || r.vm > 0) {
+            html += `<tr><td style="text-align:left"><b>${j}</b></td><td>${r.gm}</td><td>${eo}%</td><td>${rp}</td><td>${r.am}</td><td>${r.m2}</td><td>${r.vm}</td></tr>`;
+        }
+    }
+    document.getElementById('corpo-stats').innerHTML = html;
+    document.getElementById('team-eo').innerText = tRemEf > 0 ? ((tGM / tRemEf) * 100).toFixed(0) + "%" : "0%";
+    const denED = tDefendidos + pEles;
+    document.getElementById('team-ed').innerText = denED > 0 ? ((tDefendidos / denED) * 100).toFixed(0) + "%" : "0%";
+    document.getElementById('team-rp').innerText = tFalhas > 0 ? (tDef / tFalhas).toFixed(1) : tDef.toFixed(1);
+}
+
+// ==========================================
+// 6. GESTÃO DE FICHEIROS E CONFIGURAÇÕES
+// ==========================================
+function editarPlantel() {
+    alert("Alterar números das camisolas:");
+    for (let i = 0; i < plantel.length; i++) {
+        let n = prompt(`Número atual para Jogador ${i+1}:`, plantel[i]);
+        if(n !== null && n !== "") plantel[i] = n.padStart(2,'0');
+    }
+    localStorage.setItem('plantel_andebol', JSON.stringify(plantel));
+    init(); // Recria os botões imediatamente
+}
+
+function configurarNovoJogo() {
+    const id = prompt("Nr.º Único do Jogo (ex: 001):", metadadosJogo.id);
+    const adv = prompt("Nome do Adversário:", metadadosJogo.adversario);
+    if (id && adv) {
+        metadadosJogo = { id, adversario: adv, data: new Date().toLocaleDateString() };
+        localStorage.setItem('metadados_jogo', JSON.stringify(metadadosJogo));
+        
+        // Resetar apenas dados do jogo, MANTER o plantel
+        historico = []; pNos = 0; pEles = 0; segs = 0; exclusoesAtivas = [];
+        localStorage.removeItem('jogo_andebol_data');
+        location.reload(); 
+    }
+}
+
+function salvarLocalmente() {
+    const dados = { historico, pNos, pEles, segs, exclusoesAtivas };
+    localStorage.setItem('jogo_andebol_data', JSON.stringify(dados));
+}
+
+function carregarDadosGuardados() {
+    const salvos = localStorage.getItem('jogo_andebol_data');
+    if (salvos) {
+        const d = JSON.parse(salvos);
+        historico = d.historico || []; 
+        pNos = d.pNos || 0; 
+        pEles = d.pEles || 0; 
+        segs = d.segs || 0;
+        exclusoesAtivas = d.exclusoesAtivas || [];
+        atualizarRelogio();
+    }
+}
+
+function exportarCSV() {
+    let csv = "data:text/csv;charset=utf-8,ID_JOGO;DATA;ADVERSARIO;TEMPO;JOGADOR;ACAO\r\n";
+    historico.forEach(e => { csv += `2526-${metadadosJogo.id};${metadadosJogo.data};${metadadosJogo.adversario};${e.tempo};${e.quem};${e.oQue}\r\n`; });
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csv));
+    link.setAttribute("download", `Jogo_2526_${metadadosJogo.id}.csv`);
+    link.click();
+}
+
+function toggleStats() {
+    const div = document.getElementById('conteudo-stats');
+    const btn = document.getElementById('btn-toggle-stats');
+    div.style.display = (div.style.display === "none") ? "block" : "none";
+    btn.innerText = (div.style.display === "none") ? "🔽 VER ESTATÍSTICAS" : "🔼 ESCONDER ESTATÍSTICAS";
+}
+
+function anularUltimo() {
+    if(historico.length === 0) return;
+    const item = historico.shift();
+    if(item.oQue === "GOLO MARCADO") pNos--;
+    if(item.oQue === "GOLO SOFRIDO") pEles--;
+    atualizarUI();
+    salvarLocalmente();
+}
+
+function gerarResumoWhatsApp() {
+    if (historico.length === 0) return alert("Sem dados para gerar resumo!");
+
+    const eo = document.getElementById('team-eo').innerText;
+    const ed = document.getElementById('team-ed').innerText;
+    const rp = document.getElementById('team-rp').innerText;
+    
+    let maxGolos = 0;
+    let mvp = "N/A";
+    let tAM = 0, t2M = 0, tVM = 0;
+
+    // Cálculo rápido para o resumo
+    const resumo = {};
+    const todos = [...staff, ...plantel.map(n => "Nº " + n)];
+    todos.forEach(n => resumo[n] = { gm:0, am:0, m2:0, vm:0 });
+
+    historico.forEach(e => {
+        const r = resumo[e.quem];
+        if(!r) return;
+        if(e.oQue === "GOLO MARCADO") r.gm++;
+        if(e.oQue === "CARTÃO AMARELO") { r.am++; tAM++; }
+        if(e.oQue === "2 MINUTOS") { r.m2++; t2M++; }
+        if(e.oQue === "CARTÃO VERMELHO") { r.vm++; tVM++; }
+    });
+
+    for(let j in resumo) {
+        if(resumo[j].gm > maxGolos) { maxGolos = resumo[j].gm; mvp = j; }
+    }
+
+    // Texto formatado para WhatsApp
+    let texto = `📊 *RESUMO DE JOGO (Época 25/26)*\n`;
+    texto += `🤾‍♂️ *Jogo:* 2526-${metadadosJogo.id} vs ${metadadosJogo.adversario}\n`;
+    texto += `🔢 *Resultado:* ${pNos} - ${pEles}\n`;
+    texto += `--------------------------\n`;
+    texto += `🎯 *EO (Ataque):* ${eo}\n`;
+    texto += `🛡️ *ED (Defesa):* ${ed}\n`;
+    texto += `📈 *RP (Rácio):* ${rp}\n`;
+    texto += `🏆 *MVP:* ${mvp} (${maxGolos} golos)\n`;
+    texto += `--------------------------\n`;
+    texto += `⚠️ *Disciplina Equipa:*\n`;
+    texto += `🟨 AM: ${tAM} | 🟧 2M: ${t2M} | 🟥 VM: ${tVM}\n\n`;
+    texto += `_Enviado via Handball Stats Elite_`;
+
+    navigator.clipboard.writeText(texto).then(() => {
+        alert("Resumo copiado! Basta 'Colar' no WhatsApp.");
+    });
+}
+
+// INÍCIO ABSOLUTO
+window.onload = init;
+</script>	
+</body>
+</html>
