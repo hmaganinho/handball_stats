@@ -39,7 +39,7 @@
         .btn-jogador.selecionado { background: var(--azul) !important; opacity: 1 !important; border-color: #fff !important; transform: scale(1.05); }
         .cipa-label { position: absolute; top: 2px; left: 2px; font-size: 7px; opacity: 0.6; color: #fff; }
 
-        .btn-staff { background: #444; padding: 12px; font-size: 12px; border: 1px solid #666; color: white; border-radius: 6px; }
+        .btn-staff { background: var(--cinza); padding: 12px; font-size: 21px; border: 0px solid #666; opacity: 0.7; color: white; border-radius: 6px; }
         .btn-staff.selecionado { background: var(--azul) !important; border-color: #fff; }
 
         .linha-controlo { display: flex; gap: 8px; margin-bottom: 10px; }
@@ -121,6 +121,7 @@
         <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('Falha Técnica')">Falha Técnica</button>
         <button class="btn-acao" style="background:var(--amarelo); color:black" onclick="registar('C. Amarelo')">C. Amarelo</button>
         <button class="btn-acao" style="background:var(--laranja)" onclick="registar('2 Minutos')">2 Minutos</button>
+        <button class="btn-acao" style="grid-column: span 2;background:var(--vermelho)" onclick="registar('C. Vermelho')">Cartão Vermelho</button>
     </div>
 </section>
 
