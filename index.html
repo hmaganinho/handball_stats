@@ -12,7 +12,6 @@
 
         body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #111; color: white; padding-bottom: 50px; text-align: center; }
         
-        /* HEADER E KPIs (O Teu Layout v10.0) */
         #topo { position: sticky; top: 0; z-index: 100; background: var(--escuro); box-shadow: 0 4px 15px rgba(0,0,0,0.8); border-bottom: 1px solid #333; }
         #marcador { display: flex; justify-content: space-around; align-items: center; padding: 10px; }
         .score { font-size: 36px; font-weight: bold; font-family: monospace; }
@@ -26,7 +25,6 @@
         section { padding: 12px; border-bottom: 1px solid #333; max-width: 500px; margin: 0 auto; }
         h3 { font-size: 11px; color: #777; text-transform: uppercase; margin: 5px 0; }
 
-        /* GRELHA JOGADORES (O Teu Layout v10.0) */
         .grid-jogadores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .btn-jogador { 
             background: var(--cinza); border: 2px solid #444; 
@@ -40,13 +38,12 @@
         .cipa-label { position: absolute; top: 2px; left: 2px; font-size: 7px; opacity: 0.6; color: #fff; }
 
         .btn-staff { background: var(--cinza); padding: 12px; font-size: 21px; border: 0px solid #666; opacity: 0.7; color: white; border-radius: 6px; }
-        .btn-staff.selecionado { background: var(--azul) !important; border-color: #fff; }
+        .btn-staff.selecionado { background: var(--azul) !important; border-color: #fff; opacity: 1; }
 
         .linha-controlo { display: flex; gap: 8px; margin-bottom: 10px; }
         .btn-fluxo { flex: 1; padding: 15px; font-size: 14px; font-weight: bold; border-radius: 8px; border: 2px solid #444; background: #222; color: white; cursor: pointer; }
         .btn-fluxo.ativo { background: var(--verde); border-color: white; }
 
-        /* ZONAS E AÇÕES (Fonte 21px Conforme v10.0) */
         .grid-zonas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
         .btn-zona { background: var(--azul); padding: 18px 0; font-size: 21px; font-weight: bold; border-radius: 4px; color: white; border: none; }
         .btn-zona.selecionada { background: #fff; color: var(--azul); outline: 2px solid var(--azul); }
@@ -54,7 +51,6 @@
         .grid-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .btn-acao { padding: 18px 5px; font-size: 21px; font-weight: bold; border-radius: 6px; color: white; border: none; text-transform: uppercase; }
 
-        /* DASHBOARD INDIVIDUAL */
         .container-tabela { width: 100%; overflow-x: auto; margin-top: 10px; background: #111; border-radius: 8px; }
         table { width: 100%; border-collapse: collapse; font-size: 10px; }
         th { background: #222; padding: 8px; color: #888; }
@@ -107,18 +103,25 @@
         <button class="btn-zona" onclick="selecionarZona('LE', this)">LE</button>
         <button class="btn-zona" onclick="selecionarZona('CT', this)">CT</button>
         <button class="btn-zona" onclick="selecionarZona('LD', this)">LD</button>
-        <button class="btn-zona" style="grid-column: span 3; margin-top:5px;" onclick="selecionarZona('7 METROS', this)">7 METROS</button>
+        <button class="btn-zona" style="grid-column: span 2; margin-top:5px;" onclick="selecionarZona('7 METROS', this)">7 METROS</button>
+        <button class="btn-zona" style="grid-column: span 1; margin-top:5px; background: var(--roxo);" onclick="selecionarZona('C-ATAQUE', this)">C-ATAQUE</button>
     </div>
 </section>
 
 <section>
     <div class="grid-acoes">
         <button class="btn-acao" style="background:var(--verde)" onclick="registar('Golo Marcado')">Golo Marcado</button>
-        <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('Remate Falhado')">Remate Falhado</button>
-        <button class="btn-acao" style="background:var(--verde)" onclick="registar('Remate Defendido')">R. Defendido</button>
         <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('Golo Sofrido')">Golo Sofrido</button>
+        
+        <button class="btn-acao" style="background:var(--verde)" onclick="registar('Remate Defendido')">R. Defendido</button>
+        <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('Remate Falhado')">Remate Falhado</button>
+        
         <button class="btn-acao" style="background:var(--verde)" onclick="registar('Ação Defensiva')">Ação Defensiva</button>
         <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('Falha Técnica')">Falha Técnica</button>
+        
+        <button class="btn-acao" style="background:var(--verde)" onclick="registar('7M Sofrido')">7M Sofrido</button>
+        <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('7M Cometido')">7M Cometido</button>
+        
         <button class="btn-acao" style="background:var(--amarelo); color:black" onclick="registar('C. Amarelo')">C. Amarelo</button>
         <button class="btn-acao" style="background:var(--laranja)" onclick="registar('2 Minutos')">2 Minutos</button>
         <button class="btn-acao" style="grid-column: span 2;background:var(--vermelho)" onclick="registar('C. Vermelho')">Cartão Vermelho</button>
@@ -148,10 +151,10 @@
 <script>
 let jogadores = {}; 
 const staffNames = ["TREINADOR", "DIRIGENTE"];
-for(let i=1; i<=16; i++) jogadores[i] = { cipa: "------", isGR: false, noCampo: false, gm:0, rf:0, ad:0, ft:0, rd:0, gs:0, am:0, m2:0 };
+for(let i=1; i<=16; i++) jogadores[i] = { camisola: i, cipa: "------", isGR: false, noCampo: false, gm:0, rf:0, ad:0, ft:0, rd:0, gs:0, am:0, m2:0 };
 staffNames.forEach(s => jogadores[s] = { cipa: "---", noCampo: true, gm:0, rf:0, ad:0, ft:0, rd:0, gs:0, am:0, m2:0 });
 
-let historico = [], jAtivo = null, zAtiva = null, modoAtual = 'scout', segs = 0, timerInterval = null, jogoIniciado = false, tempNum = null;
+let historico = [], jAtivo = null, zAtiva = null, modoAtual = 'scout', segs = 0, timerInterval = null, timerAtivo = false, tempNum = null;
 
 const container = document.getElementById('grid-main');
 for(let i=1; i<=16; i++) {
@@ -169,11 +172,22 @@ function ativarModo(m) {
 }
 
 function cliqueJogador(num) {
-    if(!jogoIniciado && modoAtual === 'scout' && typeof num === 'number') {
-        const c = prompt(`CIPA:`, jogadores[num].cipa);
-        if(c) { jogadores[num].cipa = c; document.getElementById(`cipa-${num}`).innerText = c; tempNum = num; document.getElementById('custom-modal').style.display = 'flex'; }
+    // Só entra no modo de edição (CIPAs) se o timer estiver a ZERO e NUNCA tiver sido iniciado
+    if(!timerAtivo && segs === 0 && modoAtual === 'scout' && typeof num === 'number') {
+        const c = prompt(`CIPA para jogador ${num}:`, jogadores[num].cipa);
+        const cam = prompt(`Novo número da camisola:`, jogadores[num].camisola);
+        if(c !== null && cam !== null) { 
+            jogadores[num].cipa = c; 
+            jogadores[num].camisola = cam;
+            const btn = document.getElementById(`btn-j-${num}`);
+            btn.innerHTML = `<span class="cipa-label">${c}</span>${cam}`;
+            tempNum = num; 
+            document.getElementById('custom-modal').style.display = 'flex'; 
+        }
         return;
     }
+
+    // Modo Campo/Substituição
     if(modoAtual === '7inicial' || modoAtual === 'sub') {
         if(typeof num === 'number') {
             const ativos = Object.values(jogadores).filter(j => j.noCampo && j.cipa !== "---").length;
@@ -182,9 +196,11 @@ function cliqueJogador(num) {
             document.getElementById(`btn-j-${num}`).classList.toggle('no-campo', jogadores[num].noCampo);
         }
     } else {
+        // Seleção de Jogador para Ação (Modo Jogo)
         document.querySelectorAll('.btn-jogador, .btn-staff').forEach(b => b.classList.remove('selecionado'));
         jAtivo = num;
-        (typeof num === 'number' ? document.getElementById(`btn-j-${num}`) : document.getElementById(`btn-staff-${num.toLowerCase()}`)).classList.add('selecionado');
+        let idAlvo = typeof num === 'number' ? `btn-j-${num}` : `btn-staff-${num.toLowerCase()}`;
+        document.getElementById(idAlvo).classList.add('selecionado');
         atualizarLabel();
     }
 }
@@ -198,24 +214,41 @@ function selecionarZona(n, btn) {
     atualizarLabel();
 }
 
-function atualizarLabel() { document.getElementById('resumo-selecao').innerText = `JOGADOR: ${jAtivo || '--'} | ZONA: ${zAtiva || '--'}`; }
+function atualizarLabel() { 
+    let nomeExibicao = jAtivo;
+    if(typeof jAtivo === 'number') nomeExibicao = jogadores[jAtivo].camisola;
+    document.getElementById('resumo-selecao').innerText = `JOGADOR: ${nomeExibicao || '--'} | ZONA: ${zAtiva || '--'}`; 
+}
 
 function toggleTempo() {
-    if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-    else { timerInterval = setInterval(() => { segs++; const m = Math.floor(segs/60).toString().padStart(2,'0'), s = (segs%60).toString().padStart(2,'0'); document.getElementById('tempo').innerText = `${m}:${s}`; }, 1000); }
+    timerAtivo = true; // Assim que se clica em START, bloqueia a edição de CIPAs
+    if(timerInterval) { 
+        clearInterval(timerInterval); 
+        timerInterval = null; 
+        document.getElementById('btn-timer').innerText = "RESUME"; 
+    }
+    else { 
+        timerInterval = setInterval(() => { 
+            segs++; 
+            const m = Math.floor(segs/60).toString().padStart(2,'0'), s = (segs%60).toString().padStart(2,'0'); 
+            document.getElementById('tempo').innerText = `${m}:${s}`; 
+        }, 1000); 
+        document.getElementById('btn-timer').innerText = "PAUSE";
+    }
 }
 
 function registar(acao) {
     if(!jAtivo) return alert("Selecione Jogador!");
     const j = jogadores[jAtivo];
+    
     if(acao === "Golo Marcado") j.gm++;
     else if(acao === "Remate Falhado") j.rf++;
-    else if(acao === "Ação Defensiva") j.ad++;
-    else if(acao === "Falha Técnica") j.ft++;
+    else if(acao === "Ação Defensiva" || acao === "7M Sofrido") j.ad++;
+    else if(acao === "Falha Técnica" || acao === "7M Cometido") j.ft++;
     else if(acao === "Remate Defendido") j.rd++;
     else if(acao === "Golo Sofrido") j.gs++;
     
-    historico.unshift({ j: jAtivo, a: acao, t: document.getElementById('tempo').innerText, z: zAtiva || "Geral" });
+    historico.unshift({ j: jAtivo, cam: j.camisola, a: acao, t: document.getElementById('tempo').innerText, z: zAtiva || "Geral" });
     atualizarTudo(); resetUI();
 }
 
@@ -228,7 +261,7 @@ function atualizarTudo() {
         if(j.gm+j.rf+j.ft+j.ad+j.rd+j.gs > 0) {
             const eo = (j.gm+j.rf+j.ft > 0) ? Math.round((j.gm/(j.gm+j.rf+j.ft))*100) : 0;
             const gr = (j.rd+j.gs > 0) ? Math.round((j.rd/(j.rd+j.gs))*100) : 0;
-            corpo.innerHTML += `<tr><td>${i}</td><td>${eo}%</td><td>${j.gm}</td><td>${j.rf}</td><td>${j.ad}</td><td>${j.ft}</td><td>${gr}%</td></tr>`;
+            corpo.innerHTML += `<tr><td>${j.camisola || i}</td><td>${eo}%</td><td>${j.gm}</td><td>${j.rf}</td><td>${j.ad}</td><td>${j.ft}</td><td>${gr}%</td></tr>`;
         }
     }
     document.getElementById('p-nos').innerText = tGM;
@@ -238,16 +271,33 @@ function atualizarTudo() {
     document.getElementById('gr-val').innerText = (tRD+tGS > 0 ? Math.round((tRD/(tRD+tGS))*100) : 0) + "%";
 }
 
-function resetUI() { jAtivo = null; zAtiva = null; document.querySelectorAll('.btn-jogador, .btn-staff').forEach(b => b.classList.remove('selecionado')); document.querySelectorAll('.btn-zona').forEach(b => { b.style.background = 'var(--azul)'; b.style.color = 'white'; }); atualizarLabel(); }
+function resetUI() { 
+    jAtivo = null; zAtiva = null; 
+    document.querySelectorAll('.btn-jogador, .btn-staff').forEach(b => b.classList.remove('selecionado')); 
+    document.querySelectorAll('.btn-zona').forEach(b => { b.style.background = 'var(--azul)'; b.style.color = 'white'; }); 
+    atualizarLabel(); 
+}
 
 function exportarCSV() {
-    let csv = "Tempo;Camisola;CIPA;Acao\n";
-    historico.slice().reverse().forEach(e => { csv += `${e.t};${e.j};${jogadores[e.j].cipa};${e.a}\n`; });
+    let csv = "Tempo;Camisola;CIPA;Acao;Zona\n";
+    historico.slice().reverse().forEach(e => { csv += `${e.t};${e.cam || e.j};${jogadores[e.j].cipa};${e.a};${e.z}\n`; });
     const blob = new Blob([csv], { type: 'text/csv' }), a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = 'scout_elite.csv'; a.click();
 }
 
-function anularUltimo() { if(historico.length > 0) { historico.shift(); /* Lógica de decremento simplificada para o exemplo */ atualizarTudo(); } }
+function anularUltimo() { 
+    if(historico.length > 0) { 
+        const u = historico.shift();
+        const j = jogadores[u.j];
+        if(u.a === "Golo Marcado") j.gm--;
+        else if(u.a === "Remate Falhado") j.rf--;
+        else if(u.a === "Ação Defensiva" || u.a === "7M Sofrido") j.ad--;
+        else if(u.a === "Falha Técnica" || u.a === "7M Cometido") j.ft--;
+        else if(u.a === "Remate Defendido") j.rd--;
+        else if(u.a === "Golo Sofrido") j.gs--;
+        atualizarTudo(); 
+    } 
+}
 </script>
 </body>
 </html>
