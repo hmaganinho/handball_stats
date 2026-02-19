@@ -129,11 +129,29 @@
 </section>
 
 <section>
-    <h3>Dashboard Individual</h3>
+    <h3>Jogadores de Campo (Geral)</h3>
     <div class="container-tabela">
         <table>
-            <thead><tr><th>Nº</th><th>EO%</th><th>GM</th><th>RF</th><th>AD</th><th>FT</th><th>GR%</th></tr></thead>
-            <tbody id="corpo-stats"></tbody>
+            <thead><tr><th>Nº</th><th>EO%</th><th>GM</th><th>RF</th><th>AD</th><th>FT</th><th>AM</th><th>2M</th><th>VM</th></tr></thead>
+            <tbody id="corpo-stats-field"></tbody>
+        </table>
+    </div>
+</section>
+
+<section>
+    <h3>Guarda-Redes (Específico)</h3>
+    <div class="container-tabela">
+        <table>
+            <thead>
+                <tr>
+                    <th>Nº</th>
+                    <th>GS</th><th>RD</th><th>GR%</th>
+                    <th style="border-left:1px solid #444">GS 7m</th><th>RD 7m</th><th>7m%</th>
+                    <th style="border-left:1px solid #444">PE%</th><th>PV%</th><th>PD%</th>
+                    <th>LE%</th><th>CT%</th><th>LD%</th><th>CA%</th>
+                </tr>
+            </thead>
+            <tbody id="corpo-stats-gr"></tbody>
         </table>
     </div>
 </section>
@@ -254,21 +272,125 @@ function registar(acao) {
 
 function atualizarTudo() {
     let tGM=0, tRF=0, tFT=0, tAD=0, tRD=0, tGS=0;
-    const corpo = document.getElementById('corpo-stats'); corpo.innerHTML = "";
+
+    // Clear both tables
+    const tbField = document.getElementById('corpo-stats-field'); tbField.innerHTML = "";
+    const tbGR = document.getElementById('corpo-stats-gr'); tbGR.innerHTML = "";
+
+    // Helper to calc percentage
+    const calcPct = (num, den) => den > 0 ? Math.round((num/den)*100) : 0;
+
     for(let i in jogadores) {
         const j = jogadores[i];
-        if(!staffNames.includes(i)) { tGM+=j.gm; tRF+=j.rf; tFT+=j.ft; tAD+=j.ad; tRD+=j.rd; tGS+=j.gs; }
-        if(j.gm+j.rf+j.ft+j.ad+j.rd+j.gs > 0) {
-            const eo = (j.gm+j.rf+j.ft > 0) ? Math.round((j.gm/(j.gm+j.rf+j.ft))*100) : 0;
-            const gr = (j.rd+j.gs > 0) ? Math.round((j.rd/(j.rd+j.gs))*100) : 0;
-            corpo.innerHTML += `<tr><td>${j.camisola || i}</td><td>${eo}%</td><td>${j.gm}</td><td>${j.rf}</td><td>${j.ad}</td><td>${j.ft}</td><td>${gr}%</td></tr>`;
+        if(!staffNames.includes(i)) { 
+            // Global Totals
+            tGM+=j.gm; tRF+=j.rf; tFT+=j.ft; tAD+=j.ad; tRD+=j.rd; tGS+=j.gs; 
+
+            // 1. Calc Eficácia (EO)
+            let efic = 0;
+            if (j.isGR) {
+                const totalDef = j.rd + j.gs;
+                efic = calcPct(j.rd, totalDef);
+            } else {
+                const totalAtk = j.gm + j.rf;
+                efic = calcPct(j.gm, totalAtk);
+            }
+
+            // 2. Visual Classes
+            const btn = document.getElementById(`btn-j-${i}`);
+            if(btn) {
+                btn.classList.remove('status-am', 'status-2m-1', 'status-2m-2');
+                if (j.m2 >= 2) btn.classList.add('status-2m-2');
+                else if (j.m2 === 1) btn.classList.add('status-2m-1');
+                else if (j.am > 0) btn.classList.add('status-am');
+            }
+
+            // 3. Update Button Labels
+            const spanEf = document.getElementById(`eficacia-${i}`);
+            if(spanEf) {
+                const hasData = (j.isGR && (j.rd+j.gs > 0)) || (!j.isGR && (j.gm+j.rf > 0));
+                spanEf.innerText = hasData ? efic + "%" : "";
+            }
+            const spanM2 = document.getElementById(`m2-${i}`);
+            if(spanM2) spanM2.innerText = j.m2 > 0 ? j.m2 : "";
+
+            // --- FILL FIELD PLAYER TABLE (All players go here) ---
+            if(j.gm+j.rf+j.ft+j.ad+j.rd+j.gs+j.am+j.m2+j.vm > 0) {
+                const eo = calcPct(j.gm, j.gm+j.rf+j.ft);
+                tbField.innerHTML += `<tr>
+                    <td>${j.camisola || i}</td>
+                    <td>${eo}%</td>
+                    <td>${j.gm}</td>
+                    <td>${j.rf}</td>
+                    <td>${j.ad}</td>
+                    <td>${j.ft}</td>
+                    <td style="color:var(--amarelo)">${j.am}</td>
+                    <td style="color:orange">${j.m2}</td>
+                    <td style="color:var(--vermelho)">${j.vm}</td>
+                </tr>`;
+            }
+
+            // --- FILL GK TABLE (Only if isGR is true) ---
+            if (j.isGR) {
+                // We need to dig into history for detailed Zone stats for this specific GK
+                // Init buckets
+                let stats = {
+                    gs7m:0, rd7m:0,
+                    zones: { 
+                        'PE':{gs:0, rd:0}, 'PV':{gs:0, rd:0}, 'PD':{gs:0, rd:0},
+                        'LE':{gs:0, rd:0}, 'CT':{gs:0, rd:0}, 'LD':{gs:0, rd:0},
+                        'C-ATAQUE':{gs:0, rd:0}, '7 METROS':{gs:0, rd:0} // Temp storage for 7m too
+                    }
+                };
+
+                // Filter history
+                historico.forEach(h => {
+                    if (String(h.j) === String(i)) { // Match player ID
+                        if (h.a === "Golo Sofrido") {
+                            if(h.z === "7 METROS") stats.gs7m++;
+                            if(stats.zones[h.z]) stats.zones[h.z].gs++;
+                        }
+                        else if (h.a === "Remate Defendido") {
+                            if(h.z === "7 METROS") stats.rd7m++;
+                            if(stats.zones[h.z]) stats.zones[h.z].rd++;
+                        }
+                    }
+                });
+
+                const grTot = calcPct(j.rd, j.rd+j.gs);
+                const gr7m = calcPct(stats.rd7m, stats.rd7m+stats.gs7m);
+
+                // Helper for Zone Pct
+                const zPct = (zCode) => {
+                    const d = stats.zones[zCode];
+                    if(!d) return "0%";
+                    return calcPct(d.rd, d.rd+d.gs) + "%";
+                };
+
+                tbGR.innerHTML += `<tr>
+                    <td>${j.camisola || i}</td>
+                    <td>${j.gs}</td>
+                    <td>${j.rd}</td>
+                    <td style="font-weight:bold; color:var(--roxo)">${grTot}%</td>
+                    <td style="border-left:1px solid #444">${stats.gs7m}</td>
+                    <td>${stats.rd7m}</td>
+                    <td style="font-weight:bold">${gr7m}%</td>
+                    <td style="border-left:1px solid #444">${zPct('PE')}</td>
+                    <td>${zPct('PV')}</td>
+                    <td>${zPct('PD')}</td>
+                    <td>${zPct('LE')}</td>
+                    <td>${zPct('CT')}</td>
+                    <td>${zPct('LD')}</td>
+                    <td>${zPct('C-ATAQUE')}</td>
+                </tr>`;
+            }
         }
     }
     document.getElementById('p-nos').innerText = tGM;
     document.getElementById('p-eles').innerText = tGS;
-    document.getElementById('eo-val').innerText = (tGM+tRF+tFT > 0 ? Math.round((tGM/(tGM+tRF+tFT))*100) : 0) + "%";
-    document.getElementById('ed-val').innerText = (tRD+tGS+tAD > 0 ? Math.round(((tRD+tAD)/(tRD+tGS+tAD))*100) : 0) + "%";
-    document.getElementById('gr-val').innerText = (tRD+tGS > 0 ? Math.round((tRD/(tRD+tGS))*100) : 0) + "%";
+    document.getElementById('eo-val').innerText = calcPct(tGM, tGM+tRF+tFT) + "%";
+    document.getElementById('ed-val').innerText = calcPct(tRD+tAD, tRD+tGS+tAD) + "%";
+    document.getElementById('gr-val').innerText = calcPct(tRD, tRD+tGS) + "%";
 }
 
 function resetUI() { 
