@@ -15,7 +15,7 @@
         #topo { position: sticky; top: 0; z-index: 100; background: var(--escuro); box-shadow: 0 4px 15px rgba(0,0,0,0.8); border-bottom: 1px solid #333; }
         #marcador { display: flex; justify-content: space-around; align-items: center; padding: 10px; }
         .score { font-size: 36px; font-weight: bold; font-family: monospace; }
-        #tempo { font-size: 24px; color: var(--amarelo); font-family: monospace; }
+        #tempo { font-size: 36px; color: var(--amarelo); font-family: monospace; font-weight: bold; }
 
         #equipa-stats { display: flex; gap: 4px; padding: 10px; background: #222; }
         .btn-destaque { flex: 1; padding: 10px 2px; border-radius: 5px; background: var(--azul); text-align: center; }
@@ -60,7 +60,64 @@
         .modal-content { background: #222; padding: 30px; border-radius: 12px; border: 1px solid #444; width: 80%; max-width: 300px; }
         .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
         .btn-modal { flex: 1; padding: 15px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
-    </style>
+    
+        /* Timer Controls */
+        .timer-controls { display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 8px; }
+        .btn-timer { padding: 8px 18px; font-size: 20px; border: none; border-radius: 6px; cursor: pointer; background: var(--verde); color: white; font-weight: bold; min-width: 50px; transition: 0.2s; }
+        .btn-timer.stop { background: var(--vermelho); }
+        .btn-timer:active { transform: scale(0.95); }
+        .btn-timer.disabled { opacity: 0.4; pointer-events: none; }
+
+        /* Baliza */
+        #zona-baliza-container {
+            display: none; 
+            margin: 15px auto; 
+            max-width: 320px; 
+            text-align: center;
+            animation: fadeIn 0.3s;
+        }
+        .baliza-frame {
+            background: repeating-linear-gradient(45deg, #cc0000, #cc0000 10px, #ffffff 10px, #ffffff 20px);
+            padding: 10px;
+            padding-bottom: 0;
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+        }
+        .baliza-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            background: #ccc;
+            border: 2px solid #333;
+            border-bottom: none;
+        }
+        .baliza-cell {
+            background: rgba(255, 255, 255, 0.9);
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .baliza-cell:hover { background: #ffeb3b; }
+        .baliza-cell:active { background: #4caf50; color: white; transform: scale(0.95); }
+        .baliza-titulo { color: #fff; margin-bottom: 5px; font-size: 14px; text-transform: uppercase; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Status dos Jogadores (Visual) */
+        .status-am { border-color: #ffeb3b !important; box-shadow: 0 0 5px #ffeb3b !important; color: #ffeb3b !important; }
+        .status-2m-1 { border-color: #fd7e14 !important; box-shadow: 0 0 8px #fd7e14 !important; }
+        .status-2m-2 { border-color: #dc3545 !important; box-shadow: 0 0 10px #dc3545 !important; }
+
+        /* Labels dentro do botão */
+        .eficacia-label { position: absolute; bottom: 2px; right: 4px; font-size: 10px; opacity: 0.8; color: #ccc; }
+        .m2-dot { position: absolute; top: 2px; right: 4px; font-size: 10px; font-weight: bold; color: #fd7e14; }
+</style>
 </head>
 <body>
 
@@ -69,7 +126,10 @@
         <div class="score" id="p-nos" style="color:var(--verde)">0</div>
         <div style="text-align:center">
             <div id="tempo">00:00</div>
-            <button onclick="toggleTempo()" id="btn-timer" style="background:#333; color:white; padding:5px 15px; border-radius:4px; font-size:10px; border: 1px solid #555;">START JOGO</button>
+            <div class="timer-controls">
+                <button onclick="startTempo()" id="btn-play" class="btn-timer" title="Iniciar">▶</button>
+                <button onclick="stopTempo()" id="btn-stop" class="btn-timer stop disabled" title="Parar">⏸</button>
+            </div>
         </div>
         <div class="score" id="p-eles" style="color:var(--vermelho)">0</div>
     </div>
@@ -126,13 +186,31 @@
         <button class="btn-acao" style="background:var(--laranja)" onclick="registar('2 Minutos')">2 Minutos</button>
         <button class="btn-acao" style="grid-column: span 2;background:var(--vermelho)" onclick="registar('C. Vermelho')">Cartão Vermelho</button>
     </div>
+<div id="zona-baliza-container">
+    <div class="baliza-titulo">Selecione Zona da Baliza</div>
+    <div class="baliza-frame">
+        <div class="baliza-grid">
+            <div class="baliza-cell" onclick="confirmarBaliza('A')">A</div>
+            <div class="baliza-cell" onclick="confirmarBaliza('B')">B</div>
+            <div class="baliza-cell" onclick="confirmarBaliza('C')">C</div>
+            <div class="baliza-cell" onclick="confirmarBaliza('D')">D</div>
+            <div class="baliza-cell" onclick="confirmarBaliza('F')">F</div>
+            <div class="baliza-cell" onclick="confirmarBaliza('G')">G</div>
+            <div class="baliza-cell" onclick="confirmarBaliza('H')">H</div>
+            <div class="baliza-cell" onclick="confirmarBaliza('I')">I</div>
+            <div class="baliza-cell" onclick="confirmarBaliza('J')">J</div>
+        </div>
+    </div>
+    <button onclick="cancelarBaliza()" style="margin-top:10px; background:#444; color:#fff; border:none; padding:5px 15px; border-radius:4px; cursor:pointer;">CANCELAR</button>
+</div>
+
 </section>
 
 <section>
     <h3>Jogadores de Campo (Geral)</h3>
     <div class="container-tabela">
         <table>
-            <thead><tr><th>Nº</th><th>EO%</th><th>GM</th><th>RF</th><th>AD</th><th>FT</th><th>AM</th><th>2M</th><th>VM</th></tr></thead>
+            <thead><tr><th>Nº</th><th>EO%</th><th>GM</th><th>RF</th><th>AD</th><th>FT</th><th>7MS</th><th>7MC</th><th>AM</th><th>2M</th><th>VM</th></tr></thead>
             <tbody id="corpo-stats-field"></tbody>
         </table>
     </div>
@@ -169,8 +247,8 @@
 <script>
 let jogadores = {}; 
 const staffNames = ["TREINADOR", "DIRIGENTE"];
-for(let i=1; i<=16; i++) jogadores[i] = { camisola: i, cipa: "------", isGR: false, noCampo: false, gm:0, rf:0, ad:0, ft:0, rd:0, gs:0, am:0, m2:0 };
-staffNames.forEach(s => jogadores[s] = { cipa: "---", noCampo: true, gm:0, rf:0, ad:0, ft:0, rd:0, gs:0, am:0, m2:0 });
+for(let i=1; i<=16; i++) jogadores[i] = { camisola: i, cipa: "------", isGR: false, noCampo: false, gm:0, rf:0, ad:0, ft:0, m7s:0, m7c:0, rd:0, gs:0, am:0, m2:0, vm:0 };
+staffNames.forEach(s => jogadores[s] = { cipa: "---", noCampo: true, gm:0, rf:0, ad:0, ft:0, m7s:0, m7c:0, rd:0, gs:0, am:0, m2:0, vm:0 });
 
 let historico = [], jAtivo = null, zAtiva = null, modoAtual = 'scout', segs = 0, timerInterval = null, timerAtivo = false, tempNum = null;
 
@@ -178,7 +256,7 @@ const container = document.getElementById('grid-main');
 for(let i=1; i<=16; i++) {
     const btn = document.createElement('button');
     btn.className = 'btn-jogador'; btn.id = `btn-j-${i}`;
-    btn.innerHTML = `<span class="cipa-label" id="cipa-${i}"></span>${i}`;
+    btn.innerHTML = `<span class="cipa-label" id="cipa-${i}"></span>${i}<span class="m2-dot" id="m2-${i}"></span><span class="eficacia-label" id="eficacia-${i}"></span>`;
     btn.onclick = () => cliqueJogador(i);
     container.appendChild(btn);
 }
@@ -238,37 +316,96 @@ function atualizarLabel() {
     document.getElementById('resumo-selecao').innerText = `JOGADOR: ${nomeExibicao || '--'} | ZONA: ${zAtiva || '--'}`; 
 }
 
-function toggleTempo() {
-    timerAtivo = true; // Assim que se clica em START, bloqueia a edição de CIPAs
-    if(timerInterval) { 
-        clearInterval(timerInterval); 
-        timerInterval = null; 
-        document.getElementById('btn-timer').innerText = "RESUME"; 
-    }
-    else { 
-        timerInterval = setInterval(() => { 
-            segs++; 
-            const m = Math.floor(segs/60).toString().padStart(2,'0'), s = (segs%60).toString().padStart(2,'0'); 
-            document.getElementById('tempo').innerText = `${m}:${s}`; 
-        }, 1000); 
-        document.getElementById('btn-timer').innerText = "PAUSE";
-    }
-}
+
+        function startTempo() {
+            timerAtivo = true;
+            if(!timerInterval) {
+                timerInterval = setInterval(()=>{
+                    segs++;
+                    let m = Math.floor(segs/60); let s = segs%60;
+                    document.getElementById('tempo').textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+                }, 1000);
+                document.getElementById('btn-play').classList.add('disabled');
+                document.getElementById('btn-stop').classList.remove('disabled');
+            }
+        }
+
+        function stopTempo() {
+            if(timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                document.getElementById('btn-play').classList.remove('disabled');
+                document.getElementById('btn-stop').classList.add('disabled');
+            }
+        }
+
+        function toggleTempo() { if(!timerInterval) startTempo(); else stopTempo(); }
+
+
+
+// Variável para guardar a ação pendente
+let acaoPendente = null;
 
 function registar(acao) {
     if(!jAtivo) return alert("Selecione Jogador!");
+
+    // Ações que ativam a baliza
+    const acoesComBaliza = ["Golo Marcado", "Golo Sofrido", "Remate Defendido", "Remate Falhado"];
+
+    if (acoesComBaliza.includes(acao)) {
+        acaoPendente = acao;
+        const baliza = document.getElementById('zona-baliza-container');
+        baliza.style.display = 'block';
+        baliza.scrollIntoView({behavior: 'smooth', block: 'nearest'});
+    } else {
+        processarRegisto(acao, null);
+    }
+}
+
+function confirmarBaliza(zona) {
+    if (acaoPendente) {
+        processarRegisto(acaoPendente, zona);
+        cancelarBaliza();
+    }
+}
+
+function cancelarBaliza() {
+    acaoPendente = null;
+    document.getElementById('zona-baliza-container').style.display = 'none';
+}
+
+function processarRegisto(acao, zonaBaliza) {
     const j = jogadores[jAtivo];
-    
+
+    // Contagem de estatísticas
     if(acao === "Golo Marcado") j.gm++;
     else if(acao === "Remate Falhado") j.rf++;
-    else if(acao === "Ação Defensiva" || acao === "7M Sofrido") j.ad++;
-    else if(acao === "Falha Técnica" || acao === "7M Cometido") j.ft++;
+    else if(acao === "Ação Defensiva") j.ad++;
+    else if(acao === "7M Sofrido") { j.m7s++; } 
+    else if(acao === "Falha Técnica") j.ft++;
+    else if(acao === "7M Cometido") { j.m7c++; }
     else if(acao === "Remate Defendido") j.rd++;
     else if(acao === "Golo Sofrido") j.gs++;
-    
-    historico.unshift({ j: jAtivo, cam: j.camisola, a: acao, t: document.getElementById('tempo').innerText, z: zAtiva || "Geral" });
-    atualizarTudo(); resetUI();
+
+    // Disciplinar
+    else if(acao === "C. Amarelo") j.am++;
+    else if(acao === "2 Minutos") j.m2++;
+    else if(acao === "Cartão Vermelho") j.vm++;
+
+    // Histórico com 'zb'
+    historico.unshift({ 
+        j: jAtivo, 
+        cam: j.camisola, 
+        a: acao, 
+        t: document.getElementById('tempo').innerText, 
+        z: zAtiva || "Geral",
+        zb: zonaBaliza || "-" 
+    });
+
+    atualizarTudo(); 
+    resetUI();
 }
+
 
 function atualizarTudo() {
     let tGM=0, tRF=0, tFT=0, tAD=0, tRD=0, tGS=0;
@@ -315,7 +452,7 @@ function atualizarTudo() {
             if(spanM2) spanM2.innerText = j.m2 > 0 ? j.m2 : "";
 
             // --- FILL FIELD PLAYER TABLE (All players go here) ---
-            if(j.gm+j.rf+j.ft+j.ad+j.rd+j.gs+j.am+j.m2+j.vm > 0) {
+            if((j.gm||0)+(j.rf||0)+(j.ft||0)+(j.ad||0)+(j.rd||0)+(j.gs||0)+(j.am||0)+(j.m2||0)+(j.vm||0)+(j.m7s||0)+(j.m7c||0) > 0) {
                 const eo = calcPct(j.gm, j.gm+j.rf+j.ft);
                 tbField.innerHTML += `<tr>
                     <td>${j.camisola || i}</td>
@@ -324,6 +461,8 @@ function atualizarTudo() {
                     <td>${j.rf}</td>
                     <td>${j.ad}</td>
                     <td>${j.ft}</td>
+                    <td>${j.m7s || 0}</td>
+                    <td>${j.m7c || 0}</td>
                     <td style="color:var(--amarelo)">${j.am}</td>
                     <td style="color:orange">${j.m2}</td>
                     <td style="color:var(--vermelho)">${j.vm}</td>
