@@ -3,7 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Handball Stats Elite v10.9</title>
+    <title>Handball Stats Elite v13.1</title>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+      const firebaseConfig = {
+        apiKey: "AIzaSyB0rZbDY86-jzfpWljDQ_HyhqAXbwO89Y0",
+        authDomain: "handball-scout.firebaseapp.com",
+        databaseURL: "https://handball-scout-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "handball-scout",
+        storageBucket: "handball-scout.firebasestorage.app",
+        messagingSenderId: "787055965645",
+        appId: "1:787055965645:web:c81ec090c1f68af0d20084"
+      };
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      window._fbSet = (path, data) => set(ref(db, path), data);
+      window._fbReady = true;
+    </script>
     <style>
         :root {
             --verde: #28a745; --vermelho: #dc3545; --azul: #007bff;
@@ -35,7 +52,7 @@
         .btn-jogador.no-campo { opacity: 1; border-color: var(--verde); box-shadow: inset 0 0 10px var(--verde); }
         .btn-jogador.is-gr { background: var(--roxo); }
         .btn-jogador.selecionado { background: var(--azul) !important; opacity: 1 !important; border-color: #fff !important; transform: scale(1.05); }
-        .cipa-label { position: absolute; top: 2px; left: 2px; font-size: 7px; opacity: 0.6; color: #fff; }
+        .gm-label { position: absolute; top: 2px; right: 4px; font-size: 11px; font-weight: bold; color: #fff; opacity: 0.95; }
 
         .btn-staff { background: var(--cinza); padding: 12px; font-size: 21px; border: 0px solid #666; opacity: 0.7; color: white; border-radius: 6px; }
         .btn-staff.selecionado { background: var(--azul) !important; border-color: #fff; opacity: 1; }
@@ -114,6 +131,19 @@
         .status-2m-1 { border-color: #fd7e14 !important; box-shadow: 0 0 8px #fd7e14 !important; }
         .status-2m-2 { border-color: #dc3545 !important; box-shadow: 0 0 10px #dc3545 !important; }
 
+        #modal-setup{display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);z-index:2000;justify-content:center;align-items:center;}
+        .setup-box{background:#1a1a1a;border:1px solid #333;border-radius:14px;padding:28px 20px;width:92%;max-width:380px;}
+        .setup-box h2{margin:0 0 4px;font-size:20px;color:white;text-align:center;}
+        .setup-subtitulo{font-size:10px;color:#555;text-align:center;text-transform:uppercase;letter-spacing:2px;margin-bottom:20px;}
+        .setup-row label{display:block;font-size:10px;color:#666;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+        .setup-row input{width:100%;padding:10px 12px;background:#111;border:1px solid #333;border-radius:6px;color:white;font-size:14px;box-sizing:border-box;}
+        .setup-row input:focus{outline:none;border-color:var(--azul);}
+        .setup-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+        .equipa-nos input{border-left:3px solid var(--verde)!important;}
+        .equipa-eles input{border-left:3px solid var(--vermelho)!important;}
+        .btn-setup{width:100%;padding:15px;background:var(--azul);color:white;border:none;border-radius:8px;font-size:15px;font-weight:bold;cursor:pointer;margin-top:8px;}
+        #barra-jogo{background:#0a0a0a;border-bottom:1px solid #1a1a1a;padding:5px 10px;text-align:center;font-size:11px;color:#555;display:none;}
+        .btn-editar-jogo{position:fixed;bottom:14px;right:14px;background:#1a1a1a;border:1px solid #333;color:#666;font-size:11px;padding:7px 12px;border-radius:6px;cursor:pointer;z-index:500;}
         /* Labels dentro do botão */
         .eficacia-label { position: absolute; bottom: 2px; right: 4px; font-size: 10px; opacity: 0.8; color: #ccc; }
         .m2-dot { position: absolute; top: 2px; right: 4px; font-size: 10px; font-weight: bold; color: #fd7e14; }
@@ -121,9 +151,33 @@
 </head>
 <body>
 
+<div id="modal-setup">
+  <div class="setup-box">
+    <h2>⛾ Handball Scout</h2>
+    <div class="setup-subtitulo">Configuração do Jogo</div>
+    <div class="setup-2col">
+      <div class="setup-row"><label>Nº do Jogo</label><input type="text" id="s-id" placeholder="Ex: 047"></div>
+      <div class="setup-row"><label>Data</label><input type="date" id="s-data"></div>
+    </div>
+    <div class="setup-2col">
+      <div class="setup-row"><label>Hora</label><input type="time" id="s-hora"></div>
+      <div class="setup-row"><label>Local</label><input type="text" id="s-local" placeholder="Pavilhão..."></div>
+    </div>
+    <div class="setup-2col">
+      <div class="setup-row equipa-nos"><label>🟢 A Nossa Equipa</label><input type="text" id="s-nos" placeholder="Nome da equipa"></div>
+      <div class="setup-row equipa-eles"><label>🔴 Adversário</label><input type="text" id="s-eles" placeholder="Adversário"></div>
+    </div>
+    <button class="btn-setup" onclick="guardarSetup()">▶ INICIAR JOGO</button>
+  </div>
+</div>
+<div id="barra-jogo"></div>
+<button class="btn-editar-jogo" onclick="abrirEditarJogo()">✏️ Jogo</button>
 <div id="topo">
     <div id="marcador">
-        <div class="score" id="p-nos" style="color:var(--verde)">0</div>
+        <div style="text-align:center">
+            <div id="label-nos" style="font-size:11px;color:var(--verde);font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">NÓS</div>
+            <div class="score" id="p-nos" style="color:var(--verde)">0</div>
+        </div>
         <div style="text-align:center">
             <div id="tempo">00:00</div>
             <div class="timer-controls">
@@ -131,7 +185,10 @@
                 <button onclick="stopTempo()" id="btn-stop" class="btn-timer stop disabled" title="Parar">⏸</button>
             </div>
         </div>
-        <div class="score" id="p-eles" style="color:var(--vermelho)">0</div>
+        <div style="text-align:center">
+            <div id="label-eles" style="font-size:11px;color:var(--vermelho);font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">ELES</div>
+            <div class="score" id="p-eles" style="color:var(--vermelho)">0</div>
+        </div>
     </div>
     <div id="equipa-stats">
         <div class="btn-destaque"><span class="label-destaque">EO</span><span class="val-destaque" id="eo-val">0%</span></div>
@@ -170,11 +227,11 @@
 
 <section>
     <div class="grid-acoes">
-        <button class="btn-acao" style="background:var(--verde)" onclick="registar('Golo Marcado')">Golo Marcado</button>
-        <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('Golo Sofrido')">Golo Sofrido</button>
+        <button class="btn-acao" style="background:var(--verde);line-height:1.2;" onclick="registar('Golo Marcado')">GOLO<br><span style="font-size:14px">MARCADO</span></button>
+        <button class="btn-acao" style="background:var(--vermelho);line-height:1.2;" onclick="registar('Golo Sofrido')">GOLO<br><span style="font-size:14px">SOFRIDO</span></button>
         
-        <button class="btn-acao" style="background:var(--verde)" onclick="registar('Remate Defendido')">R. Defendido</button>
-        <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('Remate Falhado')">Remate Falhado</button>
+        <button class="btn-acao" style="background:var(--verde);line-height:1.2;" onclick="registar('Remate Defendido')">REMATE<br><span style="font-size:14px">DEFENDIDO</span></button>
+        <button class="btn-acao" style="background:var(--vermelho);line-height:1.2;" onclick="registar('Remate Falhado')">REMATE<br><span style="font-size:14px">FALHADO</span></button>
         
         <button class="btn-acao" style="background:var(--verde)" onclick="registar('Ação Defensiva')">Ação Defensiva</button>
         <button class="btn-acao" style="background:var(--vermelho)" onclick="registar('Falha Técnica')">Falha Técnica</button>
@@ -256,7 +313,7 @@ const container = document.getElementById('grid-main');
 for(let i=1; i<=16; i++) {
     const btn = document.createElement('button');
     btn.className = 'btn-jogador'; btn.id = `btn-j-${i}`;
-    btn.innerHTML = `<span class="cipa-label" id="cipa-${i}"></span>${i}<span class="m2-dot" id="m2-${i}"></span><span class="eficacia-label" id="eficacia-${i}"></span>`;
+    btn.innerHTML = `<span class="gm-label" id="gm-${i}"></span><span id="cam-${i}">${i}</span><span class="m2-dot" id="m2-${i}"></span><span class="eficacia-label" id="eficacia-${i}"></span>`;
     btn.onclick = () => cliqueJogador(i);
     container.appendChild(btn);
 }
@@ -275,8 +332,8 @@ function cliqueJogador(num) {
         if(c !== null && cam !== null) { 
             jogadores[num].cipa = c; 
             jogadores[num].camisola = cam;
-            const btn = document.getElementById(`btn-j-${num}`);
-            btn.innerHTML = `<span class="cipa-label">${c}</span>${cam}`;
+            const spanCam = document.getElementById(`cam-${num}`);
+            if(spanCam) spanCam.innerText = cam;
             tempNum = num; 
             document.getElementById('custom-modal').style.display = 'flex'; 
         }
@@ -323,7 +380,9 @@ function atualizarLabel() {
                 timerInterval = setInterval(()=>{
                     segs++;
                     let m = Math.floor(segs/60); let s = segs%60;
-                    document.getElementById('tempo').textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+                    const tStr = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+                    document.getElementById('tempo').textContent = tStr;
+                    if(window._fbReady) window._fbSet('jogo/tempo', tStr).catch(()=>{});
                 }, 1000);
                 document.getElementById('btn-play').classList.add('disabled');
                 document.getElementById('btn-stop').classList.remove('disabled');
@@ -350,7 +409,7 @@ function registar(acao) {
     if(!jAtivo) return alert("Selecione Jogador!");
 
     // Ações que ativam a baliza
-    const acoesComBaliza = ["Golo Marcado", "Golo Sofrido", "Remate Defendido", "Remate Falhado"];
+    const acoesComBaliza = ["Golo Marcado", "Golo Sofrido", "Remate Defendido"];
 
     if (acoesComBaliza.includes(acao)) {
         acaoPendente = acao;
@@ -450,6 +509,10 @@ function atualizarTudo() {
             }
             const spanM2 = document.getElementById(`m2-${i}`);
             if(spanM2) spanM2.innerText = j.m2 > 0 ? j.m2 : "";
+            const spanGM = document.getElementById(`gm-${i}`);
+            if(spanGM) spanGM.innerText = j.gm > 0 ? "⚽" + j.gm : "";
+            const spanCam = document.getElementById(`cam-${i}`);
+            if(spanCam) spanCam.innerText = j.camisola || i;
 
             // --- FILL FIELD PLAYER TABLE (All players go here) ---
             if((j.gm||0)+(j.rf||0)+(j.ft||0)+(j.ad||0)+(j.rd||0)+(j.gs||0)+(j.am||0)+(j.m2||0)+(j.vm||0)+(j.m7s||0)+(j.m7c||0) > 0) {
@@ -527,9 +590,39 @@ function atualizarTudo() {
     }
     document.getElementById('p-nos').innerText = tGM;
     document.getElementById('p-eles').innerText = tGS;
-    document.getElementById('eo-val').innerText = calcPct(tGM, tGM+tRF+tFT) + "%";
-    document.getElementById('ed-val').innerText = calcPct(tRD+tAD, tRD+tGS+tAD) + "%";
-    document.getElementById('gr-val').innerText = calcPct(tRD, tRD+tGS) + "%";
+    const eoStr = calcPct(tGM, tGM+tRF+tFT) + "%";
+    const edStr = calcPct(tRD+tAD, tRD+tGS+tAD) + "%";
+    const grStr = calcPct(tRD, tRD+tGS) + "%";
+    document.getElementById('eo-val').innerText = eoStr;
+    document.getElementById('ed-val').innerText = edStr;
+    document.getElementById('gr-val').innerText = grStr;
+    _sincronizarFirebase(tGM, tGS, tRF, tFT, tRD, tAD, eoStr, edStr, grStr);
+}
+
+function _sincronizarFirebase(tGM, tGS, tRF, tFT, tRD, tAD, eoStr, edStr, grStr) {
+    if(!window._fbReady) return;
+    const calcPct = (n,d) => d>0 ? Math.round((n/d)*100) : 0;
+    const payload = {
+        info: jogoInfo || {},
+        marcador: { nos: tGM, eles: tGS },
+        tempo: document.getElementById('tempo').innerText,
+        eficacias: { eo: eoStr, ed: edStr, gr: grStr },
+        historico: historico.slice(0, 30).map(e => ({
+            t: e.t, cam: String(e.cam || e.j), a: e.a, z: e.z, zb: e.zb || "-"
+        })),
+        stats: Object.entries(jogadores)
+            .filter(([k]) => !['TREINADOR','DIRIGENTE'].includes(k))
+            .filter(([,j]) => (j.gm||0)+(j.rf||0)+(j.ft||0)+(j.ad||0)+(j.rd||0)+(j.gs||0)+(j.am||0)+(j.m2||0)+(j.vm||0) > 0)
+            .map(([,j]) => ({
+                cam: String(j.camisola||'?'), cipa: j.cipa, isGR: j.isGR||false,
+                gm:j.gm||0, rf:j.rf||0, ad:j.ad||0, ft:j.ft||0,
+                m7s:j.m7s||0, m7c:j.m7c||0, rd:j.rd||0, gs:j.gs||0,
+                am:j.am||0, m2:j.m2||0, vm:j.vm||0,
+                eo: calcPct(j.gm||0, (j.gm||0)+(j.rf||0)+(j.ft||0))
+            })),
+        ts: Date.now()
+    };
+    window._fbSet('jogo', payload).catch(e => console.warn('Firebase:', e));
 }
 
 function resetUI() { 
@@ -539,12 +632,9 @@ function resetUI() {
     atualizarLabel(); 
 }
 
-function exportarCSV() {
-    let csv = "Tempo;Camisola;CIPA;Acao;Zona\n";
-    historico.slice().reverse().forEach(e => { csv += `${e.t};${e.cam || e.j};${jogadores[e.j].cipa};${e.a};${e.z}\n`; });
-    const blob = new Blob([csv], { type: 'text/csv' }), a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = 'scout_elite.csv'; a.click();
-}
+function exportarCSV() { _exportarCSV(); }
+
+function enviarWhatsApp() { _enviarWhatsApp(); }
 
 function anularUltimo() { 
     if(historico.length > 0) { 
@@ -552,14 +642,27 @@ function anularUltimo() {
         const j = jogadores[u.j];
         if(u.a === "Golo Marcado") j.gm--;
         else if(u.a === "Remate Falhado") j.rf--;
-        else if(u.a === "Ação Defensiva" || u.a === "7M Sofrido") j.ad--;
-        else if(u.a === "Falha Técnica" || u.a === "7M Cometido") j.ft--;
+        else if(u.a === "Ação Defensiva") j.ad--;
+        else if(u.a === "Falha Técnica") j.ft--;
+        else if(u.a === "7M Sofrido") j.m7s--;
+        else if(u.a === "7M Cometido") j.m7c--;
+        else if(u.a === "C. Amarelo") j.am--;
+        else if(u.a === "2 Minutos") j.m2--;
+        else if(u.a === "C. Vermelho") j.vm--;
         else if(u.a === "Remate Defendido") j.rd--;
         else if(u.a === "Golo Sofrido") j.gs--;
         atualizarTudo(); 
     } 
 }
+
+let jogoInfo = {};
+function carregarSetup(){const s=localStorage.getItem('handball_jogo_info');if(s){jogoInfo=JSON.parse(s);aplicarSetup();document.getElementById('modal-setup').style.display='none';}else{const n=new Date();document.getElementById('s-data').value=n.toISOString().split('T')[0];document.getElementById('s-hora').value=n.toTimeString().slice(0,5);document.getElementById('modal-setup').style.display='flex';}}
+function guardarSetup(){const nos=document.getElementById('s-nos').value.trim(),eles=document.getElementById('s-eles').value.trim(),data=document.getElementById('s-data').value;if(!nos||!eles)return alert("Preenche o nome das duas equipas!");if(!data)return alert("Indica a data!");jogoInfo={id:document.getElementById('s-id').value.trim()||'?',data,hora:document.getElementById('s-hora').value,local:document.getElementById('s-local').value.trim()||'—',nos,eles};localStorage.setItem('handball_jogo_info',JSON.stringify(jogoInfo));aplicarSetup();document.getElementById('modal-setup').style.display='none';if(window._fbReady)window._fbSet('jogo/info',jogoInfo).catch(()=>{});}
+function aplicarSetup(){document.getElementById('label-nos').innerText=jogoInfo.nos||'NÓS';document.getElementById('label-eles').innerText=jogoInfo.eles||'ELES';const df=jogoInfo.data?new Date(jogoInfo.data+'T12:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric'}):'';const p=[jogoInfo.id!=='?'?'Jogo #'+jogoInfo.id:'',df,jogoInfo.hora,jogoInfo.local!=='—'?jogoInfo.local:''].filter(Boolean);const b=document.getElementById('barra-jogo');b.innerText=p.join('  ·  ');b.style.display='block';document.title=jogoInfo.nos+' vs '+jogoInfo.eles;}
+function abrirEditarJogo(){document.getElementById('s-id').value=jogoInfo.id||'';document.getElementById('s-data').value=jogoInfo.data||'';document.getElementById('s-hora').value=jogoInfo.hora||'';document.getElementById('s-local').value=jogoInfo.local!=='—'?jogoInfo.local||'':'';document.getElementById('s-nos').value=jogoInfo.nos||'';document.getElementById('s-eles').value=jogoInfo.eles||'';document.getElementById('modal-setup').style.display='flex';}
+function _exportarCSV(){let csv="\uFEFF";csv+=`Jogo #${jogoInfo.id||'?'};${jogoInfo.nos||'Nós'} vs ${jogoInfo.eles||'Eles'};${jogoInfo.data||''};${jogoInfo.hora||''};${jogoInfo.local||''}\n\n`;csv+="Tempo;Camisola;CIPA;Acao;Zona;Zona Baliza\n";historico.slice().reverse().forEach(e=>{const c=(jogadores[e.j]&&jogadores[e.j].cipa)?jogadores[e.j].cipa:"-";csv+=`${e.t};${e.cam||e.j};${c};${e.a};${e.z};${e.zb||"-"}\n`;});const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`scout_${(jogoInfo.nos||'nos').replace(/\s/g,'_')}_vs_${(jogoInfo.eles||'eles').replace(/\s/g,'_')}.csv`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(a.href);}
+function _enviarWhatsApp(){if(historico.length===0)return alert("Sem registos!");let msg="*⛾ SCOUT HANDBALL*\n";if(jogoInfo.nos)msg+=`*${jogoInfo.nos} vs ${jogoInfo.eles}*\n`;if(jogoInfo.data){const df=new Date(jogoInfo.data+'T12:00').toLocaleDateString('pt-PT');msg+=`📅 ${df}${jogoInfo.hora?' '+jogoInfo.hora:''}${jogoInfo.local&&jogoInfo.local!=='—'?' — '+jogoInfo.local:''}\n`;}msg+=`\n*Marcador:* ${document.getElementById('p-nos').innerText} - ${document.getElementById('p-eles').innerText} _(${document.getElementById('tempo').innerText})_\n`;msg+=`*EO:* ${document.getElementById('eo-val').innerText} | *ED:* ${document.getElementById('ed-val').innerText} | *GR:* ${document.getElementById('gr-val').innerText}\n\n*Últimas Ações:*\n`;historico.slice(0,10).forEach(e=>{msg+=`[${e.t}] ${e.cam||e.j} - ${e.a}`;if(e.zb&&e.zb!=="-")msg+=` (Baliza: ${e.zb})`;msg+="\n";});window.open("https://wa.me/?text="+encodeURIComponent(msg),'_blank');}
+window.addEventListener('load',carregarSetup);
 </script>
 </body>
 </html>
-
