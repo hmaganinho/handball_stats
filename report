@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handball Scout — Live Report</title>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+      import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-database.js";
+      const firebaseConfig = {
+        apiKey: "AIzaSyB0rZbDY86-jzfpWljDQ_HyhqAXbwO89Y0",
+        authDomain: "handball-scout.firebaseapp.com",
+        databaseURL: "https://handball-scout-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "handball-scout",
+        storageBucket: "handball-scout.firebasestorage.app",
+        messagingSenderId: "787055965645",
+        appId: "1:787055965645:web:c81ec090c1f68af0d20084"
+      };
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
+      const todasZonas = ['PE','PV','PD','LE','CT','LD','7 METROS','C-ATAQUE'];
+      let zonasRemate = new Set(todasZonas);
+      let grSelecionado = null;
+      let dadosJogo = null;
+
+      window.toggleZonaRemate = function(zona, btn) {
+        if(zonasRemate.has(zona)){ if(zonasRemate.size===1) return; zonasRemate.delete(zona); btn.classList.remove('ativo'); }
+        else { zonasRemate.add(zona); btn.classList.add('ativo'); }
+        if(dadosJogo) renderBaliza(dadosJogo);
+      };
+      window.selecionarTodasZonas = function() {
+        zonasRemate = new Set(todasZonas);
+        document.querySelectorAll('.btn-zona-remate').forEach(b=>b.classList.add('ativo'));
+        if(dadosJogo) renderBaliza(dadosJogo);
+      };
+      window.selecionarGR = function(cam, btn) {
+        grSelecionado = (grSelecionado===cam) ? null : cam;
+        document.querySelectorAll('.btn-gr-sel').forEach(b=>b.classList.remove('ativo'));
+        if(grSelecionado===null) document.getElementById('btn-gr-todos').classList.add('ativo');
+        else btn.classList.add('ativo');
+        if(dadosJogo) renderBaliza(dadosJogo);
+      };
+
+      function calcPct(n,d){ return d>0?Math.round((n/d)*100):null; }
+
+      function renderGRButtons(stats){
+        const grs=(stats||[]).filter(j=>j.isGR);
+        const cont=document.getElementById('painel-gr-sel');
+        if(grs.length===0){ cont.innerHTML='<span style="color:#444;font-size:10px">Sem GR</span>'; return; }
+        let html='<button class="btn-gr-sel ativo" id="btn-gr-todos" onclick="selecionarGR(null,this)">Todos</button>';
+        grs.forEach(j=>{ html+=`<button class="btn-gr-sel" onclick="selecionarGR('${j.cam}',this)">#${j.cam}</button>`; });
+        cont.innerHTML=html;
+        if(grSelecionado && !grs.find(j=>j.cam===grSelecionado)) grSelecionado=null;
+      }
+
+      function renderBaliza(d){
+        const zonasBal=['A','B','C','D','F','G','H','I','J'];
+        const stats={};
+        zonasBal.forEach(z=>stats[z]={gs:0,rd:0});
+        let totalGS=0, totalRD=0;
+        if(d.historico){
+            d.historico.forEach(e=>{
+                if(!zonasRemate.has(e.z)) return;
+                if(grSelecionado && e.cam!==grSelecionado) return;
+                if(e.a==='Golo Sofrido'    && stats[e.zb]){ stats[e.zb].gs++; totalGS++; }
+                if(e.a==='Remate Defendido' && stats[e.zb]){ stats[e.zb].rd++; totalRD++; }
+            });
+        }
+        const efGlobal=calcPct(totalRD,totalRD+totalGS);
+        const grLabel=grSelecionado?`GR #${grSelecionado}`:'Todos os GR';
+        document.getElementById('ef-global-val').innerText=efGlobal!==null?efGlobal+'%':'—';
+        document.getElementById('ef-global-label').innerText=grLabel;
+        document.getElementById('ef-global-sub').innerText=`${totalRD} def. / ${totalRD+totalGS} rem.`;
+        zonasBal.forEach(z=>{
+            const el=document.getElementById('bal-'+z); if(!el) return;
+            const s=stats[z], total=s.rd+s.gs, pct=calcPct(s.rd,total);
+            if(total===0){ el.innerHTML=`<span class="bal-letra">${z}</span>`; el.style.background='rgba(255,255,255,0.06)'; }
+            else{
+                const hue=Math.round(pct*1.2);
+                el.style.background=`hsla(${hue},75%,32%,0.9)`;
+                el.innerHTML=`<span class="bal-letra">${z}</span><span class="bal-pct">${pct}%</span><span class="bal-detalhe">${s.rd}/${total}</span>`;
+            }
+        });
+      }
+
+      onValue(ref(db,'jogo'),(snap)=>{
+        const d=snap.val(); if(!d) return;
+        dadosJogo=d;
+        if(d.info&&d.info.nos){
+            document.getElementById('nome-nos').innerText=d.info.nos;
+            document.getElementById('nome-eles').innerText=d.info.eles;
+            document.title=d.info.nos+' vs '+d.info.eles;
+            const p=[d.info.id&&d.info.id!=='?'?'Jogo #'+d.info.id:'',
+                d.info.data?new Date(d.info.data+'T12:00').toLocaleDateString('pt-PT',{day:'2-digit',month:'short',year:'numeric'}):'',
+                d.info.hora||'',d.info.local&&d.info.local!=='—'?d.info.local:''
+            ].filter(Boolean);
+            document.getElementById('barra-info').innerText=p.join('  ·  ');
+        }
+        document.getElementById('p-nos').innerText=d.marcador?.nos??0;
+        document.getElementById('p-eles').innerText=d.marcador?.eles??0;
+        document.getElementById('tempo').innerText=d.tempo??'00:00';
+        document.getElementById('eo-val').innerText=d.eficacias?.eo??'0%';
+        document.getElementById('ed-val').innerText=d.eficacias?.ed??'0%';
+        document.getElementById('gr-val').innerText=d.eficacias?.gr??'0%';
+
+        const campo=(d.stats||[]).filter(j=>!j.isGR);
+        const grs=(d.stats||[]).filter(j=>j.isGR);
+
+        document.getElementById('tbody-campo').innerHTML=campo.length?campo.map(j=>`<tr>
+          <td style="text-align:left;font-weight:bold">${j.cam}</td>
+          <td style="font-weight:bold;color:#66bb6a">${j.eo}%</td>
+          <td>${j.gm}</td><td>${j.rf}</td><td>${j.ad}</td><td>${j.ft}</td>
+          <td>${j.m7s}</td><td>${j.m7c}</td>
+          <td style="color:#ffc107">${j.am}</td><td style="color:orange">${j.m2}</td><td style="color:#ef5350">${j.vm}</td>
+        </tr>`).join(''):'<tr><td colspan="11" class="aguarda">Sem dados</td></tr>';
+
+        document.getElementById('tbody-gr').innerHTML=grs.length?grs.map(j=>{
+            const grPct=j.rd+j.gs>0?Math.round(j.rd/(j.rd+j.gs)*100):0;
+            return `<tr>
+              <td style="text-align:left;font-weight:bold">${j.cam}</td>
+              <td style="font-weight:bold;color:#b39ddb">${grPct}%</td>
+              <td>${j.gs}</td><td>${j.rd}</td>
+              <td>${j.m7s}</td><td>${j.m7c}</td>
+              <td style="color:#ffc107">${j.am}</td><td style="color:orange">${j.m2}</td><td style="color:#ef5350">${j.vm}</td>
+            </tr>`;
+        }).join(''):'<tr><td colspan="9" class="aguarda">Sem dados</td></tr>';
+
+        renderGRButtons(d.stats);
+        renderBaliza(d);
+
+        const hDiv=document.getElementById('historico');
+        hDiv.innerHTML=(d.historico&&d.historico.length>0)?d.historico.map(e=>{
+            const pos=['Golo Marcado','Remate Defendido','Ação Defensiva','7M Sofrido'].includes(e.a);
+            const cor=pos?'#66bb6a':'#ef5350';
+            const zb=(e.zb&&e.zb!=='-')?` <span class="badge">${e.zb}</span>`:'';
+            return `<div class="acao-row"><span class="t-col">[${e.t}]</span><span class="c-col">${e.cam}</span><span style="color:${cor};flex:1">${e.a}${zb}</span><span class="z-col">${e.z}</span></div>`;
+        }).join(''):'<div class="aguarda">A aguardar ações...</div>';
+
+        document.getElementById('status').innerHTML='🟢 <b>AO VIVO</b>';
+        document.getElementById('upd').innerText=new Date().toLocaleTimeString('pt-PT');
+      });
+
+      window.addEventListener('load',()=>{
+        document.querySelectorAll('.btn-zona-remate').forEach(b=>b.classList.add('ativo'));
+      });
+    </script>
+    <style>
+        :root{--verde:#28a745;--verm:#dc3545;--azul:#007bff;--am:#ffc107;--roxo:#6f42c1;}
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Segoe UI',sans-serif;background:#0d0d0d;color:white;padding-bottom:30px;}
+        #topo{background:#000;border-bottom:1px solid #1a1a1a;padding:10px 15px;position:sticky;top:0;z-index:100;}
+        .topo-row{display:flex;justify-content:space-between;align-items:center;}
+        .topo-titulo{font-size:11px;color:#444;text-transform:uppercase;letter-spacing:2px;}
+        #barra-info{font-size:11px;color:#444;margin-top:4px;text-align:center;}
+        #marcador{display:flex;justify-content:center;align-items:center;gap:20px;padding:20px 10px 10px;}
+        .equipa-bloco{text-align:center;min-width:90px;}
+        .equipa-nome{font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+        .score{font-size:72px;font-weight:bold;font-family:monospace;line-height:1;}
+        #tempo{font-size:30px;color:var(--am);font-family:monospace;font-weight:bold;}
+        .tempo-label{font-size:10px;color:#333;margin-top:4px;text-transform:uppercase;}
+        #eficacias{display:flex;gap:8px;padding:0 12px 15px;}
+        .efic{flex:1;background:#1a1a1a;border-radius:8px;padding:12px 8px;text-align:center;}
+        .efic-v{font-size:26px;font-weight:bold;}
+        .efic-l{font-size:9px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
+        section{padding:12px 15px;border-top:1px solid #1a1a1a;max-width:720px;margin:0 auto;}
+        h3{font-size:10px;color:#444;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;}
+        table{width:100%;border-collapse:collapse;font-size:11px;}
+        th{background:#111;padding:7px 4px;color:#555;font-weight:normal;text-align:center;}
+        td{padding:7px 4px;border-bottom:1px solid #111;text-align:center;}
+
+        /* Secção baliza — contentor limitado */
+        #secao-baliza{display:flex;gap:12px;align-items:flex-start;padding:12px 15px;border-top:1px solid #1a1a1a;max-width:480px;margin:0 auto;}
+        #painel-filtros{width:100px;flex-shrink:0;display:flex;flex-direction:column;gap:12px;}
+        .filtro-grupo h3{margin-bottom:6px;}
+        .btn-zona-remate,.btn-gr-sel{display:block;width:100%;padding:5px 4px;margin-bottom:3px;background:#1a1a1a;border:1px solid #333;border-radius:4px;color:#666;font-size:10px;font-weight:bold;cursor:pointer;text-align:center;transition:0.15s;}
+        .btn-zona-remate.ativo,.btn-gr-sel.ativo{background:#1a3a5c;border-color:var(--azul);color:#fff;}
+        .btn-todas{background:#222!important;border-color:#555!important;color:#aaa!important;}
+        #painel-gr-sel{display:flex;flex-direction:column;}
+        #painel-baliza{flex:1;min-width:0;}
+        .ef-global-box{background:#1a1a1a;border-radius:6px;padding:7px 9px;margin-bottom:7px;display:flex;align-items:center;gap:8px;}
+        #ef-global-val{font-size:24px;font-weight:bold;color:var(--roxo);white-space:nowrap;}
+        #ef-global-label{font-size:10px;color:#aaa;}
+        #ef-global-sub{font-size:9px;color:#555;}
+
+        /* Baliza — proporção 3:2, tamanho enquadrado */
+        .baliza-wrap{background:repeating-linear-gradient(45deg,#8b0000,#8b0000 6px,#fff 6px,#fff 12px);padding:5px;padding-bottom:0;border-radius:3px 3px 0 0;}
+        .baliza-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2px;background:#555;border:2px solid #333;border-bottom:none;aspect-ratio:3/2;}
+        .bal-cell{background:rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:background 0.3s;border-radius:1px;padding:2px;}
+        .bal-letra{font-size:11px;font-weight:bold;color:#777;}
+        .bal-pct{font-size:15px;font-weight:bold;color:#fff;line-height:1.1;}
+        .bal-detalhe{font-size:8px;color:rgba(255,255,255,0.5);}
+
+        .acao-row{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid #111;font-size:13px;}
+        .t-col{color:#444;min-width:48px;font-size:11px;}
+        .c-col{min-width:30px;font-weight:bold;}
+        .z-col{color:#444;font-size:10px;}
+        .badge{background:#222;border-radius:3px;padding:1px 5px;font-size:11px;}
+        .aguarda{color:#333;text-align:center;padding:20px;font-size:13px;}
+    </style>
+</head>
+<body>
+<div id="topo">
+  <div class="topo-row">
+    <span class="topo-titulo">⛾ Handball Scout — Live</span>
+    <span id="status" style="color:#444;font-size:12px">⚪ A aguardar...</span>
+  </div>
+  <div id="barra-info"></div>
+  <div style="text-align:right;margin-top:2px"><span id="upd" style="font-size:10px;color:#333"></span></div>
+</div>
+
+<div id="marcador">
+  <div class="equipa-bloco">
+    <div class="equipa-nome" id="nome-nos" style="color:var(--verde)">NÓS</div>
+    <div class="score" id="p-nos" style="color:var(--verde)">0</div>
+  </div>
+  <div style="text-align:center">
+    <div id="tempo">00:00</div>
+    <div class="tempo-label">tempo</div>
+  </div>
+  <div class="equipa-bloco">
+    <div class="equipa-nome" id="nome-eles" style="color:var(--verm)">ELES</div>
+    <div class="score" id="p-eles" style="color:var(--verm)">0</div>
+  </div>
+</div>
+
+<div id="eficacias">
+  <div class="efic"><div class="efic-v" id="eo-val" style="color:var(--azul)">0%</div><div class="efic-l">Ef. Ofensiva</div></div>
+  <div class="efic"><div class="efic-v" id="ed-val" style="color:#5c6bc0">0%</div><div class="efic-l">Ef. Defensiva</div></div>
+  <div class="efic"><div class="efic-v" id="gr-val" style="color:var(--roxo)">0%</div><div class="efic-l">Eficácia GR</div></div>
+</div>
+
+<section>
+  <h3>Jogadores de Campo</h3>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th style="text-align:left">Nº</th><th>EO%</th><th>GM</th><th>RF</th><th>AD</th><th>FT</th><th>7MS</th><th>7MC</th><th>AM</th><th>2M</th><th>VM</th></tr></thead>
+      <tbody id="tbody-campo"><tr><td colspan="11" class="aguarda">A aguardar dados...</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h3>Guarda-Redes</h3>
+  <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th style="text-align:left">Nº</th><th>GR%</th><th>GS</th><th>RD</th><th>7MS</th><th>7MC</th><th>AM</th><th>2M</th><th>VM</th></tr></thead>
+      <tbody id="tbody-gr"><tr><td colspan="9" class="aguarda">A aguardar dados...</td></tr></tbody>
+    </table>
+  </div>
+</section>
+
+<div id="secao-baliza">
+  <div id="painel-filtros">
+    <div class="filtro-grupo">
+      <h3>Zona Remate</h3>
+      <button class="btn-zona-remate" onclick="toggleZonaRemate('PE',this)">PE</button>
+      <button class="btn-zona-remate" onclick="toggleZonaRemate('PV',this)">PV</button>
+      <button class="btn-zona-remate" onclick="toggleZonaRemate('PD',this)">PD</button>
+      <button class="btn-zona-remate" onclick="toggleZonaRemate('LE',this)">LE</button>
+      <button class="btn-zona-remate" onclick="toggleZonaRemate('CT',this)">CT</button>
+      <button class="btn-zona-remate" onclick="toggleZonaRemate('LD',this)">LD</button>
+      <button class="btn-zona-remate" onclick="toggleZonaRemate('7 METROS',this)">7M</button>
+      <button class="btn-zona-remate" onclick="toggleZonaRemate('C-ATAQUE',this)">C-AT</button>
+      <button class="btn-zona-remate btn-todas" onclick="selecionarTodasZonas()">Todas ↺</button>
+    </div>
+    <div class="filtro-grupo">
+      <h3>Guarda-Redes</h3>
+      <div id="painel-gr-sel"><span style="color:#444;font-size:10px">A aguardar...</span></div>
+    </div>
+  </div>
+  <div id="painel-baliza">
+    <h3>Eficácia por Zona da Baliza</h3>
+    <div class="ef-global-box">
+      <div id="ef-global-val">—</div>
+      <div>
+        <div id="ef-global-label">Todos os GR</div>
+        <div id="ef-global-sub"></div>
+      </div>
+    </div>
+    <div class="baliza-wrap">
+      <div class="baliza-grid">
+        <div class="bal-cell" id="bal-A"><span class="bal-letra">A</span></div>
+        <div class="bal-cell" id="bal-B"><span class="bal-letra">B</span></div>
+        <div class="bal-cell" id="bal-C"><span class="bal-letra">C</span></div>
+        <div class="bal-cell" id="bal-D"><span class="bal-letra">D</span></div>
+        <div class="bal-cell" id="bal-F"><span class="bal-letra">F</span></div>
+        <div class="bal-cell" id="bal-G"><span class="bal-letra">G</span></div>
+        <div class="bal-cell" id="bal-H"><span class="bal-letra">H</span></div>
+        <div class="bal-cell" id="bal-I"><span class="bal-letra">I</span></div>
+        <div class="bal-cell" id="bal-J"><span class="bal-letra">J</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <h3>Registo de Ações (últimas 30)</h3>
+  <div id="historico"><div class="aguarda">A aguardar dados do jogo...</div></div>
+</section>
+</body>
+</html>
